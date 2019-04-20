@@ -1,0 +1,132 @@
+    					微人事
+项目背景:人事管理系统是一种常见的企业后台管理系统,它的主要目的是加强各个部门之间的协调和管理工作效率。各部门之间实现资源共享，并且实现即时通信，提高工作效率，简化烦琐的手工统计，信息汇总和工资业务等大量的人工工作。为此开发了'微人事'项目管理系统，本项目采用当下流行的前后端分离的方式开发，后端使用Spring Boot开发，前端使用Vue+ElementUI来构建单页面应用，即通过重写当前页面来与用户交互，而非传统的从服务器重新加载整个新页面，前端和后端通过Ajax来进行通信。 
+
+功能模块:本项目模块有：员工资料，人事管理，薪资管理，统计管理，系统管理及即时通信等模块，我在此项目中负责员工资料，和即时通信模块，具体开发包括登录功能，动态加载用户菜单，员工资料显示、新增员工，邮件发送、员工信息的Excel导入导出、在线聊天模块等功能。
+
+现在来到项目,首先进入的是登录模块,登录模块采用spring提供的websecurity进行安全验证和权限验证，之所以用websecurity不用shiro是因为websecurity能更有效的控制权限，功能更加完善，而且他是源于spring的，而我们的项目后端采用的是springboot进行的开发，因此可以和spring框架无缝整合，实现这个功能我一共 写了四个配置类:
+      首页我先实现了FilterInvocationSecuritymetadatasource接口的getAttribute方法来-返回当前请求路径所需要的角色集合.(判断当前请求地址所需哪些角色才能访问)
+然后实现了AccessdecisionManager接口的decide方法用于拿刚刚返回的角色集合与当前登录用户所具备的角色进行对比,如果用户具备所需角色就直接retrun该方法,如果不具备那么抛出权限不足的异常.
+接下来实现AccessdeniedHandel的handle方法对刚刚抛出的异常进行处理,将权限不足等信息存入RespBean中返回给用户
+最后在配置SecurityConfig类:SecurityConfig类继承自WebSecurityConfigurationAdapter类,该类提供一系列重载方法configure(),我们所需要实现参数分别为auth,HTTPSecurity,WebS ecurity的configure重载方法()
+auth:用于将HrService注入,以及使用.passwordEncoder方法对登陆进加密
+(HrService必须实现UserDetailService)
+Web:用于设置不拦截的请求路径antMacherts方法
+http:用于注入返回角色集合和与角色进行对比的两个配置类,然后提供登陆成功和登陆失败的两个方法,将返回信息写入RespBean显示给用户,最后通过.ExceptionHandling()方法将抛出的异常类进行注入,也就是我刚刚所说的第三个抛出权限不足的配置类AccessDeniedHandler  
+
+动态加载用户菜单模块
+在使用登录模块成功登陆后，会在首页左侧显示用户菜单。这个菜单是根据用户的角色动态加载的。不同的用户在登陆之后，根据不同的角色，会看到不同的系统菜单。
+动态加载用户菜单模块的功能实现比较容易。就是根据登录用户的ID查询到该用户所具有的角色，再根据角色信息查看对应的menu。
+因此，不同的用户登录上来之后，所看到的菜单会有所差异。
+首先创建menumapper，根据用户ID查询menu。
+创建对应的menumapper的文件使用执行SQL语句进行数据库访问。
+然后创建业务逻辑层menuservice对menumapper进行方法调用。
+创建控制层configcontroller，configcontroller用来返回系统配置信息。
+其中会用到hrutils类，HRutils是一个工具方法，用来返回当前登录用户的信息。
+以上所有配置完成后，启动测试springboot项目。访问相应的接口。就可以看到当前登录用户所能查看的菜单数据。
+
+员工资料模块:
+员工信息查询附带条件查询以及分页,实现的话在控制层接受所需要的条件参数以及分页参数,然后根据条件查询数据库返回数据,然后让Vue框架自动渲染视图(条件查询需先在页面加载时查询所有下拉框的值,所需要表为:Nation,Political,PositionStatus,Joblevel,department,执行查询所有操作)
+
+新增员工：
+新增员工主要是给数据库执行一个新增操作,还有新增员工后,给该员工填写的信息发一封入职email邮件.发送邮件的话我们是通过创建子线程的方式执行的发送,因为发送邮箱需要好几秒,创建子线程的话就不需要等上一封邮件发完后才继续发送第二封,不管第一封发没发送完,第二次发送可以直接执行发送.。具体实现先写一个html模板,用于展示给员工查询,接下来实现Runnable接口创建子线程,该类中 先注入javaMailSend类用于执行发送和templateEngine类用于给html模板的员工信息赋值.接下来在run方法中编写代码,先用javamailSend的createMineHelper返回一个对象,在通过创建MimeMessageHelper类为邮件设置,发送者和发送人(New的时候用的有参构造,第一个参数为刚刚创建的对象,第二个设置为true),在创建Context类的setVariable方法设置员工信息,然后通过第一步注入的templateEngine类提供process方法把Context作为参数放入,第一个参数为html模板,第二个为Context.然后用hepler的text方法吧process返回值放入,最后执行javamailSend的send方法,把createMineHelper方法的返回对象放入就行了
+
+导出:
+导出的话必先获取到所需要导出的数据,我们这边做的是一个导出员工数据,具体实现为:
+先查询所有员工记录存入集合,然后New 一个HSSFWorkbook对象,意为创建一个excel文档,创建该对象需引入依赖poi.然后该类提供一系统get方法用于获取文档信息,如果要配置该文档信息的话可以通过刚刚get方法的返回对象用的set方法配置.
+接下来通过HSSFWorkbook的createSheet方法创建一个Excel表单,可以用这个返回对象的set方法设置一些   格式,样式还有列的宽高度,设置完这些基本信息后开始为Excel创建行和列,并为其赋值,具体实现用刚刚创建的对象的createRow,createCell方法,然后使用一个for循环,把查询出来的员工集合赋值入cell中,这样导出的文档信息和数据就基本配置完了,最后创建一个ByteArrayOutputStream对象作为HSSFWorkbook的写入方法参数,执行write方法.
+
+导入：
+导入先从excel拿到需要导入的数据,跟上传文件的意思一样,拿到一个file文件,接下来创建一个HSSFWorkBook对象,通过该类的getSheetAt方法指定参数获取到文件中那一行的数据,0是第一行,需舍弃第一行,因为第一行为表头,无法插入数据库,获取到该行对象后使用for循环,利用该行对象的getcell方法,获取该行每一个格子中的值,赋值进员工对象当中,需先创建员工集合,因为不但要循环遍历每一列,也要遍历每一行,也就是cell和row,当for循环遍历完后也就是数据全部从文档中拿出来并且赋值当员工集合当中了,最后在将数据插入数据库就行了,因为插入的数据是一个集合,所以我在mybatis的sql映射文件中用到了一个foreach标签,用来循环遍历集合进行插入.然后导入成功
+
+在线聊天:
+	在线聊天包括登录用户之间进行的聊天以及系统管理员发送的系统消息,具体实现步骤为:
+导入websocket依赖,配置websocketconfig实现websocketmessageBorkerConfiguration()的两个方法,第一个方法用于配置消息代理的前缀以及被@MessageMapping注解标识的方法进行处理,第二个方法用于配置用户在服务器进行消息传递时的前缀,最后在该类加上EnableWebSocketMessageBroket注解开启消息代理和@Configuration标识改类为一个注解类
+配置完Config后编写Controller,主要编写的是 一个系统消息和用户之间进行的聊天请求,其实就是点对点消息与消息群发.
+点对点:页面加载时查询所有用户,然后使用注解@MessageMapping在发送方法的上面,改方法用于获取所需要发送的用户,然后通过SpringSecurity提供的getCurrent方法获取当前用户登录的信息,也就是发送人.最后调用SimpMessagetemplate的ConverandSendtoUser方法进行发送
+消息群发:
+页面加载时获取所有系统消息,然后判断该用户是否具备admin权限也就是发送系统消息的权限,与点对点不同的是系统消息进行了数据库的插入,群发的消息保存于系统消息表与消息内容表当中,最后使用@MessageMapping和@SendTo注解配合使用实现消息群发
+
+
+
+
+
+
+
+
+
+
+
+   ,
+
+
+
+
+
+                                 
+
+
+
+
+
+
+过滤器和拦截器的区别：
+
+　　①拦截器是基于java的反射机制的，而过滤器是基于函数回调。
+　　②拦截器不依赖与servlet容器，过滤器依赖与servlet容器。
+　　③拦截器只能对action请求起作用，而过滤器则可以对几乎所有的请求起作用。
+　　④拦截器可以访问action上下文、值栈里的对象，而过滤器不能访问。
+　　⑤在action的生命周期中，拦截器可以多次被调用，而过滤器只能在容器初始化时被调用一次。
+
+　　⑥拦截器可以获取IOC容器中的各个bean，而过滤器就不行，这点很重要，在拦截器里注入一个service，可以调用业务逻辑。
+
+
+springBoot如何定义拦截器?
+
+第一步创建一个类实现HandlerInterceptor接口，重写接口的方法，只是多了一个@Component注解，这个注解是为后面的使用时进行注入。
+第二步在入口类的目录或者兄弟目录下创建一个类继承WebMvcConfigurerAdapter类并重写addInterceptors方法；
+@SpringBootConfiguration注解表明这是一个配置类
+
+如何定义过滤器?
+
+1.由<filter>和 <filter-mapping>组成。<filter-mapping>需要写在后面。
+
+2<filter-name> 是自己命名的。注意mapping中的<filter-name>需要和filter中的一样。且如果是多个过滤器，name不能重复。 
+
+3.<filter-class>是自己的类的路径精确到类名。 
+
+4.<url-pattern>过滤的url 类型，这里是* 意思是所有请求都需要经过这个过滤器。 
+
+5.如果是多个过滤器，它是按照 <filter-mapping>的顺序运行的。
+
+定义过滤类实现Filter接口
+需要实现init，doFilter，destroy方法
+
+
+
+
+如何发送带附件的邮件?
+
+通过调用Attachment方法即可添加附件，使用MimeMessageHelper简化邮件配置，他的构造方法的第二个参数设为true，表示这是个包含多个正文，附件以及内嵌资源的邮件
+
+
+
+
+springSecurity如何获取当前登录信息?
+HrUtils类中，定义静态的getCurrentHr方法，返回SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+
+
+如何设置发送消息的前缀?
+自定义WebSocketConfig类实现WebSocketMessageBrokerConfigurer接口，利用registerStompEndpoints方法中的stompEndpointRegistry.addEndpoint来获取
+
+
+opsForValue();
+
+
+消息代理既使用了/queue,又使用了/topic，主要是因为我这里既有点对点的单聊(queue)，也有发送系统消息的群聊(topic)。
+发送来的消息，最后一个;后面跟的是该条消息要发送到哪个用户，这里通过字符串截取将之提取出来。响应消息包含两个字段，一个是消息内容，一个是该条消息由谁发送。
+
+
+
+其中 registerStompEndpoints 方法是定义通道，就是建立连接
+
+而configureMessageBroker方法是定义请求应带的前缀
