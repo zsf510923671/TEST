@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-module
+  type="WEB"
+  name="AddressBookOnline"
+  id="myeclipse.1555830383619"
+  context-root="/AddressBookOnline"
+  j2ee-spec="5.0"
+  archive="AddressBookOnline.war">
+  <attributes>
+    <attribute name="webrootdir" value="WebRoot" />
+  </attributes>
+</project-module>
+
