@@ -1,0 +1,22 @@
+1.https://git-scm.com/download/win
+   下载git并安装git
+2.到git官方中注册账号
+3.cmd中输入命令
+   mkdir TEST		//创建TEST文件夹
+   cd TEST		//进入
+   git init 			//把这个目录变成git可以管理的仓库
+   手动复制项目到TEST路径下
+   git status		//查看文件状态
+   git add			//.添加到仓库   
+   (如:出现  warning: LF will be replaced by CRLF in 大礼包.txt.
+	The file will have its original line endings in your working directory  错误)
+   
+    设置完整信息
+   git config --global user.email "邮箱"
+   git config --global user.name "名字"
+   git add	
+   git commit -m "a"		//提交至本地仓库 -m添加备注信息
+   官方中新增库的
+   git remote add origin https://github.com/zsf510923671/TEST.git		//本地仓库与远程仓库关联
+   git push -u origin master		//推送至github
+4.
