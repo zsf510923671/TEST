@@ -19,4 +19,25 @@
    官方中新增库的
    git remote add origin https://github.com/zsf510923671/TEST.git		//本地仓库与远程仓库关联
    git push -u origin master		//推送至github
-4.
+
+
+4.常用命令
+git log   		 历史记录
+HEAD		表示当前版本
+HEAD^   		上一个版本
+git reset --hard HEAD^	回退到上一个版本
+cat readme.txt	查看内容
+
+git reset --hard 1094a	append GPL的commit id是1094adb...		回到未来的某个版本
+		
+git reflog		记录你的每一次命令
+
+$ ssh-keygen -t rsa -C "youremail@example.com"
+
+你需要把邮件地址换成你自己的邮件地址，然后一路回车，使用默认值即可，由于这个Key也不是用于军事目的，所以也无需设置密码。
+
+如果一切顺利的话，可以在用户主目录里找到.ssh目录，里面有id_rsa和id_rsa.pub两个文件，这两个就是SSH Key的秘钥对，id_rsa是私钥，不能泄露出去，id_rsa.pub是公钥，可以放心地告诉任何人。
+
+
+git clone git@github.com:michaelliao/gitskills.git
+克隆一个本地库
